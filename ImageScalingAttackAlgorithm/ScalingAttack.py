@@ -4,7 +4,7 @@ import cvxpy as cp
 import cv2
 
 
-def get_coefficients(m, n, mprime, nprime, scale_func=Image.Image.resize):  # def get_coefficients(int, int, int, int)
+def get_coefficients(m, n, mprime, nprime, scale_func=Image.NEAREST):  # def get_coefficients(int, int, int, int)
     # set image size and scaled image size, here image size is m*n = 700*350 and scaled m'*n' = 175*50
     In_max = 255  # maximum pixel value in an image/white
 
@@ -20,7 +20,7 @@ def get_coefficients(m, n, mprime, nprime, scale_func=Image.Image.resize):  # de
     # for that we need to convert this 'matrix_of_white_box' into an image first, hence:
     white_box = Image.fromarray(matrix_of_white_box.T)
     # now we scale it using 'resize'
-    resized_white_box = scale_func(white_box, (mprime, m), 0)
+    resized_white_box = white_box.resize((mprime, m), scale_func)
 
     # now the CL or the vertical coefficient matrix will be this 'resized_white_box' converted to array and then divided
     # by the In_max value, which now just leaves the fractions, which are the coefficients for this scaling
@@ -38,7 +38,7 @@ def get_coefficients(m, n, mprime, nprime, scale_func=Image.Image.resize):  # de
     white_box = Image.fromarray(matrix_of_white_box.T)
 
     # scale the image to n*n'
-    resized_white_box = scale_func(white_box, (n, nprime), 0)
+    resized_white_box = white_box.resize((n, nprime), scale_func)
 
     # convert this image to array and divide by In_max so we are left with coefficients
     CR = np.array(resized_white_box).T / In_max
@@ -46,7 +46,7 @@ def get_coefficients(m, n, mprime, nprime, scale_func=Image.Image.resize):  # de
     return CL, CR
 
 
-def generate_attack_image(source_image, target_image, scale_func=Image.Image.resize):
+def generate_attack_image(source_image, target_image, scale_func=Image.NEAREST):
     # S
     source_image_array = np.array(source_image)
 
@@ -65,7 +65,7 @@ def generate_attack_image(source_image, target_image, scale_func=Image.Image.res
     delta_one_vertical = np.zeros((m, nprime))
 
     # get intermediate_source_image of size mxn'
-    intermediate_source_image = scale_func(source_image, (m, nprime), 0)
+    intermediate_source_image = source_image.resize((m, nprime), scale_func)
     intermediate_source_image_array = np.array(intermediate_source_image).T  # convert image to array
 
     # Launch vertical scaling attack
@@ -157,11 +157,11 @@ def implement_attack(source_image, target_image):   # def implement_attack(Image
     source_image = source_image.convert('RGB').split()
 
     # Convert(to drop Alpha channel if any) and Split Target image into separate channels(stored as tuple)
-    target_image = target_image.split()
+    target_image = target_image.convert('RGB').split()
 
     # store scaling function in a variable scale_func, we can toggle between different scaling functions to be used
     # directly from here, below are some examples
-    scale_func = Image.Image.resize
+    scale_func = Image.NEAREST
 
     # generate attack image channels R, G and B
     # We could use a for loop and remove some clutter but this just makes it easy to understand
@@ -174,7 +174,7 @@ def implement_attack(source_image, target_image):   # def implement_attack(Image
 
     # testing: show generated image and scaled image
     attack_image.show()
-    scale_func(attack_image, target_image[0].size, 0)
+    attack_image.resize(target_image[0].size, scale_func).show()
 
     # save the generated attack image
     attack_image.save("attack_image.jpg")
